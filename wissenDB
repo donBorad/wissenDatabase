@@ -1,0 +1,497 @@
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Issue Log</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <header>
+    <span class="logo">⬛ IssueLog</span>
+    <button id="openModal">+ New Issue</button>
+  </header>
+
+  <main>
+    <div id="filters">
+      <button class="filter active" data-filter="all">All</button>
+      <button class="filter" data-filter="open">Open</button>
+      <button class="filter" data-filter="resolved">Resolved</button>
+    </div>
+    <div id="issueList"></div>
+    <p id="empty">No issues yet. Create one.</p>
+  </main>
+
+  <!-- Modal -->
+  <div id="modal" class="hidden">
+    <div class="modal-box">
+      <h2 id="modalTitle">New Issue</h2>
+      <input id="fTitle" placeholder="Title *" maxlength="100"/>
+      <textarea id="fDesc" placeholder="Describe the issue *" rows="3"></textarea>
+      <textarea id="fResolution" placeholder="Resolution (optional)" rows="2"></textarea>
+      <div class="modal-actions">
+        <button id="cancelModal" class="ghost">Cancel</button>
+        <button id="saveIssue">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+style.css
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0d;
+  --surface: #161616;
+  --card: #1e1e1e;
+  --border: #2a2a2a;
+  --accent: #e8ff47;
+  --text: #f0f0f0;
+  --muted: #666;
+  --open: #ff6b6b;
+  --resolved: #6bffb8;
+  --radius: 8px;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* HEADER */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 2rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+
+.logo {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+header button {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 0.5rem 1.1rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity .15s;
+}
+header button:hover { opacity: .85; }
+
+/* MAIN */
+main {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* FILTERS */
+#filters {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: .35rem .85rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.filter.active, .filter:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* EMPTY */
+#empty {
+  color: var(--muted);
+  text-align: center;
+  margin-top: 4rem;
+  font-size: 13px;
+  display: none;
+}
+#empty.show { display: block; }
+
+/* ISSUE CARDS */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.3rem;
+  margin-bottom: .8rem;
+  animation: fadeIn .2s ease;
+}
+.card:hover { border-color: #3a3a3a; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.card-title {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  flex: 1;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: .2rem .6rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  flex-shrink: 0;
+}
+.badge.open     { background: #ff6b6b22; color: var(--open); border: 1px solid var(--open); }
+.badge.resolved { background: #6bffb822; color: var(--resolved); border: 1px solid var(--resolved); }
+
+.card-desc {
+  margin-top: .55rem;
+  color: #aaa;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.resolution-block {
+  margin-top: .8rem;
+  padding: .7rem 1rem;
+  background: #6bffb808;
+  border-left: 3px solid var(--resolved);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.resolution-block .label {
+  font-size: 10px;
+  color: var(--resolved);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: .3rem;
+  font-weight: 600;
+}
+.resolution-block p { color: #ccc; line-height: 1.6; white-space: pre-wrap; }
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: .9rem;
+}
+
+.card-date { color: var(--muted); font-size: 11px; }
+
+.card-actions { display: flex; gap: .4rem; }
+
+.card-actions button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: .25rem .65rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.card-actions button:hover { border-color: var(--accent); color: var(--accent); }
+.card-actions .del:hover  { border-color: var(--open); color: var(--open); }
+
+/* MODAL */
+#modal {
+  position: fixed;
+  inset: 0;
+  background: #000a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+#modal.hidden { display: none; }
+
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.8rem;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+}
+
+.modal-box h2 {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.modal-box input,
+.modal-box textarea {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: .65rem .9rem;
+  outline: none;
+  resize: vertical;
+  transition: border-color .15s;
+  width: 100%;
+}
+.modal-box input:focus,
+.modal-box textarea:focus { border-color: var(--accent); }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .6rem;
+  margin-top: .3rem;
+}
+
+.modal-actions button {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: .5rem 1.2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity .15s;
+  border: none;
+}
+#saveIssue { background: var(--accent); color: #000; font-weight: 600; }
+#saveIssue:hover, #cancelModal:hover { opacity: .8; }
+.ghost { background: transparent; border: 1px solid var(--border) !important; color: var(--muted); }
+app.js
+// ── MODEL ──────────────────────────────────────────────
+const Model = (() => {
+  const KEY = 'issuelog_v1';
+  let issues = JSON.parse(localStorage.getItem(KEY) || '[]');
+
+  const save = () => localStorage.setItem(KEY, JSON.stringify(issues));
+
+  return {
+    getAll: () => issues,
+    add(title, desc, resolution) {
+      const issue = {
+        id: Date.now(),
+        title, desc, resolution,
+        status: resolution ? 'resolved' : 'open',
+        date: new Date().toISOString()
+      };
+      issues.unshift(issue);
+      save();
+      return issue;
+    },
+    update(id, data) {
+      issues = issues.map(i => i.id === id ? { ...i, ...data } : i);
+      save();
+    },
+    remove(id) {
+      issues = issues.filter(i => i.id !== id);
+      save();
+    },
+    get(id) {
+      return issues.find(i => i.id === id);
+    }
+  };
+})();
+
+// ── VIEW ───────────────────────────────────────────────
+const View = {
+  list: document.getElementById('issueList'),
+  empty: document.getElementById('empty'),
+  modal: document.getElementById('modal'),
+  modalTitle: document.getElementById('modalTitle'),
+  fTitle: document.getElementById('fTitle'),
+  fDesc: document.getElementById('fDesc'),
+  fResolution: document.getElementById('fResolution'),
+
+  fmt(iso) {
+    return new Date(iso).toLocaleString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  },
+
+  renderAll(issues) {
+    this.list.innerHTML = '';
+    if (!issues.length) { this.empty.classList.add('show'); return; }
+    this.empty.classList.remove('show');
+    issues.forEach(i => this.list.appendChild(this.card(i)));
+  },
+
+  card(i) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.id = i.id;
+    el.innerHTML = `
+      <div class="card-header">
+        <div class="card-title">${this.esc(i.title)}</div>
+        <span class="badge ${i.status}">${i.status}</span>
+      </div>
+      <div class="card-desc">${this.esc(i.desc)}</div>
+      ${i.resolution ? `
+      <div class="resolution-block">
+        <div class="label">✓ Resolution</div>
+        <p>${this.esc(i.resolution)}</p>
+      </div>` : ''}
+      <div class="card-meta">
+        <span class="card-date">${this.fmt(i.date)}</span>
+        <div class="card-actions">
+          <button class="edit">Edit</button>
+          <button class="toggle">${i.status === 'open' ? 'Resolve' : 'Reopen'}</button>
+          <button class="del">Delete</button>
+        </div>
+      </div>`;
+    return el;
+  },
+
+  esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  },
+
+  openModal(title = 'New Issue', data = {}) {
+    this.modalTitle.textContent = title;
+    this.fTitle.value = data.title || '';
+    this.fDesc.value = data.desc || '';
+    this.fResolution.value = data.resolution || '';
+    this.modal.classList.remove('hidden');
+    this.fTitle.focus();
+  },
+
+  closeModal() {
+    this.modal.classList.add('hidden');
+  },
+
+  formData() {
+    return {
+      title: this.fTitle.value.trim(),
+      desc: this.fDesc.value.trim(),
+      resolution: this.fResolution.value.trim()
+    };
+  }
+};
+
+// ── CONTROLLER ─────────────────────────────────────────
+const Controller = (() => {
+  let filter = 'all';
+  let editId = null;
+
+  const filtered = () => {
+    const all = Model.getAll();
+    if (filter === 'all') return all;
+    return all.filter(i => i.status === filter);
+  };
+
+  const render = () => View.renderAll(filtered());
+
+  // Filter buttons
+  document.querySelectorAll('.filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  // Open modal for new issue
+  document.getElementById('openModal').addEventListener('click', () => {
+    editId = null;
+    View.openModal();
+  });
+
+  // Cancel
+  document.getElementById('cancelModal').addEventListener('click', View.closeModal.bind(View));
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) View.closeModal();
+  });
+
+  // Save
+  document.getElementById('saveIssue').addEventListener('click', () => {
+    const { title, desc, resolution } = View.formData();
+    if (!title || !desc) { alert('Title and description are required.'); return; }
+
+    if (editId) {
+      Model.update(editId, {
+        title, desc, resolution,
+        status: resolution ? 'resolved' : Model.get(editId).status
+      });
+      editId = null;
+    } else {
+      Model.add(title, desc, resolution);
+    }
+
+    View.closeModal();
+    render();
+  });
+
+  // Card actions (delegation)
+  document.getElementById('issueList').addEventListener('click', e => {
+    const card = e.target.closest('.card');
+    if (!card) return;
+    const id = Number(card.dataset.id);
+
+    if (e.target.classList.contains('del')) {
+      if (confirm('Delete this issue?')) { Model.remove(id); render(); }
+
+    } else if (e.target.classList.contains('edit')) {
+      const issue = Model.get(id);
+      editId = id;
+      View.openModal('Edit Issue', issue);
+
+    } else if (e.target.classList.contains('toggle')) {
+      const issue = Model.get(id);
+      Model.update(id, { status: issue.status === 'open' ? 'resolved' : 'open' });
+      render();
+    }
+  });
+
+  // Keyboard close
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') View.closeModal();
+  });
+
+  render(); // init
+})();
