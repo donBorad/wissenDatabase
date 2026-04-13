@@ -1,0 +1,14 @@
+} else if (e.target.classList.contains('toggle')) {
+    const issue = Model.get(id);
+    await Model.update(id, {
+      title: issue.title,
+      desc: issue.desc,
+      resolution: issue.resolution,
+      reporter: issue.reporter,
+      owner: issue.owner,
+      priority: issue.priority,
+      date: issue.date,
+      status: issue.status === 'open' ? 'resolved' : 'in-progress' === issue.status ? 'resolved' : 'open'
+    });
+    render();
+  }
