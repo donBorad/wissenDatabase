@@ -1,0 +1,44 @@
+const express = require('express');
+const Database = require('better-sqlite3');
+const path = require('path');
+
+const app = express();
+const db = new Database(path.join(__dirname, 'issues.db'));
+
+// Create table if not exists
+db.exec(`
+  CREATE TABLE IF NOT EXISTS issues (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    desc TEXT NOT NULL,
+    resolution TEXT,
+    status TEXT DEFAULT 'open',
+    date TEXT NOT NULL
+  )
+`);
+
+app.use(express.json());
+app.use(express.static(__dirname));
+
+app.get('/api/issues', (req, res) => {
+  res.json(db.prepare('SELECT * FROM issues ORDER BY date DESC').all());
+});
+
+app.post('/api/issues', (req, res) => {
+  const { id, title, desc, resolution, status, date } = req.body;
+  db.prepare('INSERT INTO issues VALUES (?,?,?,?,?,?)').run(id, title, desc, resolution, status, date);
+  res.json({ ok: true });
+});
+
+app.put('/api/issues/:id', (req, res) => {
+  const { title, desc, resolution, status } = req.body;
+  db.prepare('UPDATE issues SET title=?, desc=?, resolution=?, status=? WHERE id=?').run(title, desc, resolution, status, req.params.id);
+  res.json({ ok: true });
+});
+
+app.delete('/api/issues/:id', (req, res) => {
+  db.prepare('DELETE FROM issues WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+app.listen(3000, () => console.log('Running on http://localhost:3000'));
