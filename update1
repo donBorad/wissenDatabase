@@ -1,0 +1,68 @@
+const Model = (() => {
+  let issues = [];
+
+  return {
+    getAll: () => issues,
+
+    async load() {
+      const res = await fetch('/api/issues');
+      issues = await res.json();
+    },
+
+    async add(title, desc, resolution) {
+      const issue = {
+        id: Date.now(), title, desc, resolution,
+        status: resolution ? 'resolved' : 'open',
+        date: new Date().toISOString()
+      };
+      await fetch('/api/issues', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(issue) });
+      issues.unshift(issue);
+      return issue;
+    },
+
+    async update(id, data) {
+      await fetch(`/api/issues/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+      issues = issues.map(i => i.id === id ? {...i, ...data} : i);
+    },
+
+    async remove(id) {
+      await fetch(`/api/issues/${id}`, { method:'DELETE' });
+      issues = issues.filter(i => i.id !== id);
+    },
+
+    get: (id) => issues.find(i => i.id === id)
+  };
+})();
+Then in the Controller, change the init line at the bottom from:
+render();
+to:
+Model.load().then(render);
+And add await to the 3 controller actions (save, delete, toggle):
+// Save button
+document.getElementById('saveIssue').addEventListener('click', async () => {
+  const { title, desc, resolution } = View.formData();
+  if (!title || !desc) { alert('Title and description are required.'); return; }
+  if (editId) {
+    await Model.update(editId, { title, desc, resolution, status: resolution ? 'resolved' : Model.get(editId).status });
+    editId = null;
+  } else {
+    await Model.add(title, desc, resolution);
+  }
+  View.closeModal(); render();
+});
+
+// Card actions
+document.getElementById('issueList').addEventListener('click', async e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const id = Number(card.dataset.id);
+  if (e.target.classList.contains('del')) {
+    if (confirm('Delete this issue?')) { await Model.remove(id); render(); }
+  } else if (e.target.classList.contains('edit')) {
+    editId = id; View.openModal('Edit Issue', Model.get(id));
+  } else if (e.target.classList.contains('toggle')) {
+    const issue = Model.get(id);
+    await Model.update(id, { status: issue.status === 'open' ? 'resolved' : 'open' });
+    render();
+  }
+});
