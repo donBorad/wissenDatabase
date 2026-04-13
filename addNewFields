@@ -1,0 +1,128 @@
+index.html — replace the modal form fields
+<input id="fTitle" placeholder="Title *" maxlength="100"/>
+<textarea id="fDesc" placeholder="Describe the issue *" rows="3"></textarea>
+<textarea id="fResolution" placeholder="Resolution (optional)" rows="2"></textarea>
+<input id="fReporter" placeholder="Reporter *" maxlength="100"/>
+<input id="fOwner" placeholder="Owner / Manager" maxlength="100"/>
+<select id="fStatus">
+  <option value="open">Open</option>
+  <option value="in-progress">In Progress</option>
+  <option value="resolved">Resolved</option>
+</select>
+<select id="fPriority">
+  <option value="low">Low</option>
+  <option value="medium">Medium</option>
+  <option value="high">High</option>
+  <option value="critical">Critical</option>
+</select>
+<label style="color:var(--muted);font-size:12px;">Created At</label>
+<input id="fDate" type="datetime-local"/>
+api.php — full replacement
+<?php
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
+header('Access-Control-Allow-Headers: Content-Type');
+
+$db = new PDO('sqlite:' . __DIR__ . '/issues.db');
+$db->exec("CREATE TABLE IF NOT EXISTS issues (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  desc TEXT NOT NULL,
+  resolution TEXT,
+  status TEXT DEFAULT 'open',
+  priority TEXT DEFAULT 'medium',
+  reporter TEXT,
+  owner TEXT,
+  date TEXT NOT NULL
+)");
+
+$method = $_SERVER['REQUEST_METHOD'];
+if ($method === 'OPTIONS') { http_response_code(200); exit; }
+
+preg_match('/\/api\.php\/(\d+)$/', $_SERVER['REQUEST_URI'], $m);
+$id = $m[1] ?? null;
+
+if ($method === 'GET') {
+  echo json_encode($db->query("SELECT * FROM issues ORDER BY date DESC")->fetchAll(PDO::FETCH_ASSOC));
+
+} elseif ($method === 'POST') {
+  $d = json_decode(file_get_contents('php://input'), true);
+  $db->prepare("INSERT INTO issues VALUES (?,?,?,?,?,?,?,?,?)")
+     ->execute([$d['id'],$d['title'],$d['desc'],$d['resolution'],$d['status'],$d['priority'],$d['reporter'],$d['owner'],$d['date']]);
+  echo json_encode(['ok' => true]);
+
+} elseif ($method === 'PUT' && $id) {
+  $d = json_decode(file_get_contents('php://input'), true);
+  $db->prepare("UPDATE issues SET title=?,desc=?,resolution=?,status=?,priority=?,reporter=?,owner=?,date=? WHERE id=?")
+     ->execute([$d['title'],$d['desc'],$d['resolution'],$d['status'],$d['priority'],$d['reporter'],$d['owner'],$d['date'],$id]);
+  echo json_encode(['ok' => true]);
+
+} elseif ($method === 'DELETE' && $id) {
+  $db->prepare("DELETE FROM issues WHERE id=?")->execute([$id]);
+  echo json_encode(['ok' => true]);
+}
+app.js — update these 4 spots only
+1. Add to View object — new field references:
+fReporter: document.getElementById('fReporter'),
+fOwner: document.getElementById('fOwner'),
+fStatus: document.getElementById('fStatus'),
+fPriority: document.getElementById('fPriority'),
+fDate: document.getElementById('fDate'),
+2. formData():
+formData() {
+  return {
+    title: this.fTitle.value.trim(),
+    desc: this.fDesc.value.trim(),
+    resolution: this.fResolution.value.trim(),
+    reporter: this.fReporter.value.trim(),
+    owner: this.fOwner.value.trim(),
+    status: this.fStatus.value,
+    priority: this.fPriority.value,
+    date: this.fDate.value ? new Date(this.fDate.value).toISOString() : new Date().toISOString()
+  };
+},
+3. openModal() — populate fields on edit:
+openModal(title = 'New Issue', data = {}) {
+  this.modalTitle.textContent = title;
+  this.fTitle.value = data.title || '';
+  this.fDesc.value = data.desc || '';
+  this.fResolution.value = data.resolution || '';
+  this.fReporter.value = data.reporter || '';
+  this.fOwner.value = data.owner || '';
+  this.fStatus.value = data.status || 'open';
+  this.fPriority.value = data.priority || 'medium';
+  this.fDate.value = data.date ? data.date.slice(0,16) : '';
+  this.modal.classList.remove('hidden');
+  this.fTitle.focus();
+},
+4. Model.add() — include new fields:
+async add(title, desc, resolution, reporter, owner, status, priority, date) {
+  const issue = {
+    id: Date.now(), title, desc, resolution,
+    reporter, owner, status, priority,
+    date: date || new Date().toISOString()
+  };
+  await fetch('api.php', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(issue) });
+  issues.unshift(issue);
+  return issue;
+},
+5. Save button — pass new fields:
+document.getElementById('saveIssue').addEventListener('click', async () => {
+  const { title, desc, resolution, reporter, owner, status, priority, date } = View.formData();
+  if (!title || !desc || !reporter) { alert('Title, description and reporter are required.'); return; }
+  if (editId) {
+    await Model.update(editId, { title, desc, resolution, reporter, owner, status, priority, date });
+    editId = null;
+  } else {
+    await Model.add(title, desc, resolution, reporter, owner, status, priority, date);
+  }
+  View.closeModal(); render();
+});
+6. View.card() — display new fields:
+<div class="card-desc">${this.esc(i.desc)}</div>
+<div class="card-meta" style="margin-top:.6rem;gap:.5rem;flex-wrap:wrap;">
+  <span class="badge ${i.priority}">${i.priority}</span>
+  <span style="color:var(--muted);font-size:11px;">👤 ${this.esc(i.reporter)}</span>
+  ${i.owner ? `<span style="color:var(--muted);font-size:11px;">🏷 ${this.esc(i.owner)}</span>` : ''}
+</div>
