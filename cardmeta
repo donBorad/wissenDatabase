@@ -1,0 +1,7 @@
+div class="card-meta" style="margin-top:.6rem;gap:.5rem;flex-wrap:wrap;">
+  <span class="badge ${i.priority}">${i.priority}</span>
+  <span style="color:var(--muted);font-size:11px;">👤 Reporter: ${this.esc(i.reporter)}</span>
+  ${i.owner ? `<span style="color:var(--muted);font-size:11px;">🏷 Owner: ${this.esc(i.owner)}</span>` : '<span style="color:var(--muted);font-size:11px;">🏷 Owner: —</span>'}
+  <span style="color:var(--muted);font-size:11px;">📨 Via: ${this.esc(i.channel)}</span>
+  ${i.time_spent ? `<span style="color:var(--muted);font-size:11px;">⏱ Time: ${i.time_spent}h</span>` : ''}
+</div>
