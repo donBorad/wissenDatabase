@@ -1,0 +1,79 @@
+api.php — update the CREATE TABLE and queries. Find:
+CREATE TABLE IF NOT EXISTS issues (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  desc TEXT NOT NULL,
+  resolution TEXT,
+  status TEXT DEFAULT 'open',
+  priority TEXT DEFAULT 'medium',
+  reporter TEXT,
+  owner TEXT,
+  date TEXT NOT NULL
+)
+Replace with:
+CREATE TABLE IF NOT EXISTS issues (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  desc TEXT NOT NULL,
+  resolution TEXT,
+  status TEXT DEFAULT 'open',
+  priority TEXT DEFAULT 'medium',
+  reporter TEXT,
+  owner TEXT,
+  channel TEXT DEFAULT 'email',
+  time_spent REAL DEFAULT 0,
+  date TEXT NOT NULL
+)
+Then find:
+$db->prepare("INSERT INTO issues VALUES (?,?,?,?,?,?,?,?,?)")
+   ->execute([$d['id'],$d['title'],$d['desc'],$d['resolution'],$d['status'],$d['priority'],$d['reporter'],$d['owner'],$d['date']]);
+Replace with:
+$db->prepare("INSERT INTO issues VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+   ->execute([$d['id'],$d['title'],$d['desc'],$d['resolution'],$d['status'],$d['priority'],$d['reporter'],$d['owner'],$d['channel'],$d['time_spent'],$d['date']]);
+Then find:
+$db->prepare("UPDATE issues SET title=?,desc=?,resolution=?,status=?,priority=?,reporter=?,owner=?,date=? WHERE id=?")
+   ->execute([$d['title'],$d['desc'],$d['resolution'],$d['status'],$d['priority'],$d['reporter'],$d['owner'],$d['date'],$id]);
+Replace with:
+$db->prepare("UPDATE issues SET title=?,desc=?,resolution=?,status=?,priority=?,reporter=?,owner=?,channel=?,time_spent=?,date=? WHERE id=?")
+   ->execute([$d['title'],$d['desc'],$d['resolution'],$d['status'],$d['priority'],$d['reporter'],$d['owner'],$d['channel'],$d['time_spent'],$d['date'],$id]);
+app.js — 4 spots:
+1. Add to View object:
+fChannel: document.getElementById('fChannel'),
+fTimeSpent: document.getElementById('fTimeSpent'),
+2. In formData() add:
+channel: this.fChannel.value || 'email',
+time_spent: parseFloat(this.fTimeSpent.value) || 0,
+3. In openModal() add:
+this.fChannel.value = data.channel || 'email';
+this.fTimeSpent.value = data.time_spent || '';
+4. In Model.add() find:
+async add(title, desc, resolution, reporter, owner, status, priority, date) {
+  const issue = {
+    id: Date.now(), title, desc, resolution,
+    reporter, owner, status, priority,
+    date: date || new Date().toISOString()
+  };
+Replace with:
+async add(title, desc, resolution, reporter, owner, status, priority, date, channel, time_spent) {
+  const issue = {
+    id: Date.now(), title, desc, resolution,
+    reporter, owner, status, priority,
+    channel, time_spent,
+    date: date || new Date().toISOString()
+  };
+5. In save button find:
+const { title, desc, resolution, reporter, owner, status, priority, date } = View.formData();
+Replace with:
+const { title, desc, resolution, reporter, owner, status, priority, date, channel, time_spent } = View.formData();
+And find:
+await Model.add(title, desc, resolution, reporter, owner, status, priority, date);
+Replace with:
+await Model.add(title, desc, resolution, reporter, owner, status, priority, date, channel, time_spent);
+6. In View.card() add after the owner line:
+<span style="color:var(--muted);font-size:11px;">📨 Via: ${this.esc(i.channel)}</span>
+${i.time_spent ? `<span style="color:var(--muted);font-size:11px;">⏱ Time: ${i.time_spent}h</span>` : ''}
+Reset the DB since columns changed:
+sudo rm /var/www/html/issues.db
+sudo touch /var/www/html/issues.db
+sudo chown www-data:www-data /var/www/html/issues.db
+sudo chmod 664 /var/www/html/issues.db
