@@ -1,0 +1,1057 @@
+Here are all 4 files complete:
+index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Issue Log</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <header>
+    <span class="logo">⬛ IssueLog</span>
+    <div style="display:flex;gap:.5rem;">
+      <button id="openModal">+ New Issue</button>
+      <button id="openEventModal" style="background:var(--surface);color:var(--accent);border:1px solid var(--accent);">+ New Event</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="tabs">
+      <button class="tab active" data-tab="issues">🐛 Issues</button>
+      <button class="tab" data-tab="events">📅 Events</button>
+    </div>
+    <div id="filters">
+      <button class="filter active" data-filter="all">All</button>
+      <button class="filter" data-filter="open">Open</button>
+      <button class="filter" data-filter="resolved">Resolved</button>
+    </div>
+    <div id="issueList"></div>
+    <p id="empty">No records yet. Create one.</p>
+  </main>
+
+  <!-- Issue Modal -->
+  <div id="modal" class="hidden">
+    <div class="modal-box">
+      <h2 id="modalTitle">New Issue</h2>
+      <input id="fTitle" placeholder="Title *" maxlength="100"/>
+      <textarea id="fDesc" placeholder="Describe the issue *" rows="3"></textarea>
+      <textarea id="fResolution" placeholder="Resolution (optional)" rows="2"></textarea>
+      <input id="fReporter" placeholder="Reporter *" maxlength="100"/>
+      <input id="fOwner" placeholder="Owner / Manager" maxlength="100"/>
+      <select id="fStatus">
+        <option value="open">Open</option>
+        <option value="in-progress">In Progress</option>
+        <option value="resolved">Resolved</option>
+      </select>
+      <select id="fPriority">
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+        <option value="critical">Critical</option>
+      </select>
+      <select id="fChannel">
+        <option value="email">Email</option>
+        <option value="teams">Teams</option>
+        <option value="verbal">Verbal</option>
+      </select>
+      <input id="fTimeSpent" type="number" min="0" step="0.5" placeholder="Time spent (hours)"/>
+      <label style="color:var(--muted);font-size:12px;">Created At</label>
+      <input id="fDate" type="datetime-local"/>
+      <div id="issueDropzone" class="dropzone">
+        📎 Drop image here or <label for="issueFile">browse</label>
+        <input type="file" id="issueFile" accept="image/*" style="display:none"/>
+      </div>
+      <div id="issuePreview" class="preview"></div>
+      <div class="modal-actions">
+        <button id="cancelModal" class="ghost">Cancel</button>
+        <button id="saveIssue">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Modal -->
+  <div id="eventModal" class="hidden">
+    <div class="modal-box">
+      <h2 id="eventModalTitle">New Event</h2>
+      <input id="eTitle" placeholder="Subject *" maxlength="100"/>
+      <select id="eType">
+        <option value="meeting">Meeting</option>
+        <option value="incident">Incident</option>
+        <option value="training">Training</option>
+        <option value="call">Call</option>
+        <option value="site-visit">Site Visit</option>
+      </select>
+      <select id="eLocation">
+        <option value="teams">Teams</option>
+        <option value="room">Room</option>
+        <option value="phone">Phone</option>
+        <option value="on-site">On-site</option>
+      </select>
+      <input id="eInvitees" placeholder="Attendees (comma separated)"/>
+      <label style="color:var(--muted);font-size:12px;">Date & Time</label>
+      <input id="eDate" type="datetime-local"/>
+      <input id="eDuration" type="number" min="0" step="0.5" placeholder="Duration (hours)"/>
+      <select id="ePriority">
+        <option value="low">Low</option>
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+        <option value="critical">Critical</option>
+      </select>
+      <textarea id="eDesc" placeholder="What happened *" rows="3"></textarea>
+      <textarea id="eOutcome" placeholder="Outcome / Decision" rows="2"></textarea>
+      <textarea id="eActions" placeholder="Action items (who does what)" rows="2"></textarea>
+      <input id="eFollowup" type="date" placeholder="Follow-up date"/>
+      <input id="eReporter" placeholder="Logged by *" maxlength="100"/>
+      <div id="eventDropzone" class="dropzone">
+        📎 Drop image here or <label for="eventFile">browse</label>
+        <input type="file" id="eventFile" accept="image/*" style="display:none"/>
+      </div>
+      <div id="eventPreview" class="preview"></div>
+      <div class="modal-actions">
+        <button id="cancelEvent" class="ghost">Cancel</button>
+        <button id="saveEvent">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+style.css
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0d0d;
+  --surface: #161616;
+  --card: #1e1e1e;
+  --border: #2a2a2a;
+  --accent: #e8ff47;
+  --text: #f0f0f0;
+  --muted: #666;
+  --open: #ff6b6b;
+  --resolved: #6bffb8;
+  --radius: 8px;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 2rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+
+.logo {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+header button {
+  background: var(--accent);
+  color: #000;
+  border: none;
+  padding: 0.5rem 1.1rem;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity .15s;
+}
+header button:hover { opacity: .85; }
+
+main {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+#tabs {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1.2rem;
+}
+
+.tab {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: .45rem 1.1rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all .15s;
+}
+.tab.active, .tab:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #e8ff4711;
+}
+
+#filters {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: .35rem .85rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.filter.active, .filter:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#empty {
+  color: var(--muted);
+  text-align: center;
+  margin-top: 4rem;
+  font-size: 13px;
+  display: none;
+}
+#empty.show { display: block; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.3rem;
+  margin-bottom: .8rem;
+  animation: fadeIn .2s ease;
+}
+.card:hover { border-color: #3a3a3a; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.card-title {
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  flex: 1;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: .2rem .6rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  flex-shrink: 0;
+}
+.badge.open        { background: #ff6b6b22; color: var(--open);     border: 1px solid var(--open); }
+.badge.in-progress { background: #ffaa0022; color: #ffaa00;         border: 1px solid #ffaa00; }
+.badge.resolved    { background: #6bffb822; color: var(--resolved);  border: 1px solid var(--resolved); }
+.badge.low         { background: #ffffff11; color: #aaa;             border: 1px solid #aaa; }
+.badge.medium      { background: #e8ff4722; color: var(--accent);    border: 1px solid var(--accent); }
+.badge.high        { background: #ff944422; color: #ff9444;          border: 1px solid #ff9444; }
+.badge.critical    { background: #ff6b6b22; color: var(--open);      border: 1px solid var(--open); }
+
+.card-desc {
+  margin-top: .55rem;
+  color: #aaa;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.card-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: .6rem;
+  align-items: center;
+}
+.card-info span { color: var(--muted); font-size: 11px; }
+
+.card-image {
+  max-width: 100%;
+  border-radius: var(--radius);
+  margin-top: .6rem;
+  border: 1px solid var(--border);
+  max-height: 300px;
+  object-fit: cover;
+}
+
+.resolution-block {
+  margin-top: .8rem;
+  padding: .7rem 1rem;
+  background: #6bffb808;
+  border-left: 3px solid var(--resolved);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+.resolution-block .label {
+  font-size: 10px;
+  color: var(--resolved);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: .3rem;
+  font-weight: 600;
+}
+.resolution-block p { color: #ccc; line-height: 1.6; white-space: pre-wrap; }
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: .9rem;
+}
+
+.card-date { color: var(--muted); font-size: 11px; }
+
+.card-actions { display: flex; gap: .4rem; }
+
+.card-actions button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: .25rem .65rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.card-actions button:hover { border-color: var(--accent); color: var(--accent); }
+.card-actions .del:hover, .card-actions .evtdel:hover { border-color: var(--open); color: var(--open); }
+
+#modal, #eventModal {
+  position: fixed;
+  inset: 0;
+  background: #000a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+#modal.hidden, #eventModal.hidden { display: none; }
+
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.8rem;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+}
+
+.modal-box h2 {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.modal-box input,
+.modal-box textarea,
+.modal-box select {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: .65rem .9rem;
+  outline: none;
+  resize: vertical;
+  transition: border-color .15s;
+  width: 100%;
+}
+.modal-box input:focus,
+.modal-box textarea:focus,
+.modal-box select:focus { border-color: var(--accent); }
+.modal-box select option { background: var(--card); }
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.dropzone.over { border-color: var(--accent); color: var(--accent); }
+.dropzone label { color: var(--accent); cursor: pointer; }
+
+.preview img {
+  margin-top: .5rem;
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .6rem;
+  margin-top: .3rem;
+}
+
+.modal-actions button {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: .5rem 1.2rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: opacity .15s;
+  border: none;
+}
+#saveIssue, #saveEvent { background: var(--accent); color: #000; font-weight: 600; }
+#saveIssue:hover, #saveEvent:hover,
+#cancelModal:hover, #cancelEvent:hover { opacity: .8; }
+.ghost { background: transparent; border: 1px solid var(--border) !important; color: var(--muted); }
+api.php
+<?php
+header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
+header('Access-Control-Allow-Headers: Content-Type');
+
+$db = new PDO('sqlite:' . __DIR__ . '/issues.db');
+
+$db->exec("CREATE TABLE IF NOT EXISTS issues (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  desc TEXT NOT NULL,
+  resolution TEXT,
+  status TEXT DEFAULT 'open',
+  priority TEXT DEFAULT 'medium',
+  reporter TEXT,
+  owner TEXT,
+  channel TEXT DEFAULT 'email',
+  time_spent REAL DEFAULT 0,
+  image TEXT DEFAULT '',
+  date TEXT NOT NULL
+)");
+
+$db->exec("CREATE TABLE IF NOT EXISTS events (
+  id INTEGER PRIMARY KEY,
+  title TEXT NOT NULL,
+  type TEXT DEFAULT 'meeting',
+  location TEXT DEFAULT 'teams',
+  invitees TEXT,
+  date TEXT NOT NULL,
+  duration REAL DEFAULT 0,
+  priority TEXT DEFAULT 'medium',
+  desc TEXT NOT NULL,
+  outcome TEXT,
+  actions TEXT,
+  followup TEXT,
+  reporter TEXT NOT NULL,
+  image TEXT DEFAULT ''
+)");
+
+$method = $_SERVER['REQUEST_METHOD'];
+if ($method === 'OPTIONS') { http_response_code(200); exit; }
+
+// ── FILE UPLOAD ─────────────────────────────────────────
+if ($method === 'POST' && isset($_FILES['file'])) {
+  $dir = __DIR__ . '/uploads/';
+  if (!is_dir($dir)) mkdir($dir, 0755, true);
+  $ext  = pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION);
+  $name = uniqid() . '.' . strtolower($ext);
+  move_uploaded_file($_FILES['file']['tmp_name'], $dir . $name);
+  echo json_encode(['url' => 'uploads/' . $name]);
+  exit;
+}
+
+$type = $_GET['type'] ?? 'issue';
+$id   = $_GET['id']   ?? null;
+
+// ── EVENTS ─────────────────────────────────────────────
+if ($type === 'event') {
+
+  if ($method === 'GET') {
+    echo json_encode($db->query("SELECT * FROM events ORDER BY date DESC")->fetchAll(PDO::FETCH_ASSOC));
+
+  } elseif ($method === 'POST') {
+    $d = json_decode(file_get_contents('php://input'), true);
+    $db->prepare("INSERT INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+       ->execute([
+         $d['id'],$d['title'],$d['type'],$d['location'],
+         $d['invitees'],$d['date'],$d['duration'],$d['priority'],
+         $d['desc'],$d['outcome'],$d['actions'],$d['followup'],
+         $d['reporter'],$d['image']
+       ]);
+    echo json_encode(['ok' => true]);
+
+  } elseif ($method === 'PUT' && $id) {
+    $d = json_decode(file_get_contents('php://input'), true);
+    $db->prepare("UPDATE events SET title=?,type=?,location=?,invitees=?,date=?,duration=?,priority=?,desc=?,outcome=?,actions=?,followup=?,reporter=?,image=? WHERE id=?")
+       ->execute([
+         $d['title'],$d['type'],$d['location'],$d['invitees'],
+         $d['date'],$d['duration'],$d['priority'],$d['desc'],
+         $d['outcome'],$d['actions'],$d['followup'],$d['reporter'],
+         $d['image'],$id
+       ]);
+    echo json_encode(['ok' => true]);
+
+  } elseif ($method === 'DELETE' && $id) {
+    $db->prepare("DELETE FROM events WHERE id=?")->execute([$id]);
+    echo json_encode(['ok' => true]);
+  }
+
+// ── ISSUES ─────────────────────────────────────────────
+} else {
+
+  if ($method === 'GET') {
+    echo json_encode($db->query("SELECT * FROM issues ORDER BY date DESC")->fetchAll(PDO::FETCH_ASSOC));
+
+  } elseif ($method === 'POST') {
+    $d = json_decode(file_get_contents('php://input'), true);
+    $db->prepare("INSERT INTO issues VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+       ->execute([
+         $d['id'],$d['title'],$d['desc'],$d['resolution'],
+         $d['status'],$d['priority'],$d['reporter'],$d['owner'],
+         $d['channel'],$d['time_spent'],$d['image'],$d['date']
+       ]);
+    echo json_encode(['ok' => true]);
+
+  } elseif ($method === 'PUT' && $id) {
+    $d = json_decode(file_get_contents('php://input'), true);
+    $db->prepare("UPDATE issues SET title=?,desc=?,resolution=?,status=?,priority=?,reporter=?,owner=?,channel=?,time_spent=?,image=?,date=? WHERE id=?")
+       ->execute([
+         $d['title'],$d['desc'],$d['resolution'],$d['status'],
+         $d['priority'],$d['reporter'],$d['owner'],$d['channel'],
+         $d['time_spent'],$d['image'],$d['date'],$id
+       ]);
+    echo json_encode(['ok' => true]);
+
+  } elseif ($method === 'DELETE' && $id) {
+    $db->prepare("DELETE FROM issues WHERE id=?")->execute([$id]);
+    echo json_encode(['ok' => true]);
+  }
+}
+app.js
+// ── UPLOAD ─────────────────────────────────────────────
+function setupUpload(dropzoneId, inputId, previewId, onUrl) {
+  const zone    = document.getElementById(dropzoneId);
+  const input   = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+
+  async function upload(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    const res  = await fetch('api.php', { method: 'POST', body: fd });
+    const data = await res.json();
+    preview.innerHTML = `<img src="${data.url}"/>`;
+    onUrl(data.url);
+  }
+
+  zone.addEventListener('click',     () => input.click());
+  input.addEventListener('change',   () => upload(input.files[0]));
+  zone.addEventListener('dragover',  e  => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('over'));
+  zone.addEventListener('drop',      e  => { e.preventDefault(); zone.classList.remove('over'); upload(e.dataTransfer.files[0]); });
+}
+
+let issueImageUrl = '';
+let eventImageUrl = '';
+
+setupUpload('issueDropzone', 'issueFile', 'issuePreview', url => issueImageUrl = url);
+setupUpload('eventDropzone', 'eventFile', 'eventPreview', url => eventImageUrl = url);
+
+// ── ISSUE MODEL ────────────────────────────────────────
+const Model = (() => {
+  let issues = [];
+  return {
+    getAll: () => issues,
+    async load() {
+      const res = await fetch('api.php?type=issue');
+      issues = await res.json();
+    },
+    async add(data) {
+      const issue = { id: Date.now(), ...data };
+      await fetch('api.php?type=issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(issue)
+      });
+      issues.unshift(issue);
+      return issue;
+    },
+    async update(id, data) {
+      await fetch(`api.php?type=issue&id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      issues = issues.map(i => i.id === id ? { ...i, ...data } : i);
+    },
+    async remove(id) {
+      await fetch(`api.php?type=issue&id=${id}`, { method: 'DELETE' });
+      issues = issues.filter(i => i.id !== id);
+    },
+    get: (id) => issues.find(i => i.id === id)
+  };
+})();
+
+// ── EVENT MODEL ────────────────────────────────────────
+const EventModel = (() => {
+  let events = [];
+  return {
+    getAll: () => events,
+    async load() {
+      const res = await fetch('api.php?type=event');
+      events = await res.json();
+    },
+    async add(data) {
+      const ev = { id: Date.now(), ...data };
+      await fetch('api.php?type=event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ev)
+      });
+      events.unshift(ev);
+      return ev;
+    },
+    async update(id, data) {
+      await fetch(`api.php?type=event&id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      events = events.map(e => e.id === id ? { ...e, ...data } : e);
+    },
+    async remove(id) {
+      await fetch(`api.php?type=event&id=${id}`, { method: 'DELETE' });
+      events = events.filter(e => e.id !== id);
+    },
+    get: (id) => events.find(e => e.id === id)
+  };
+})();
+
+// ── ISSUE VIEW ─────────────────────────────────────────
+const View = {
+  list:        document.getElementById('issueList'),
+  empty:       document.getElementById('empty'),
+  modal:       document.getElementById('modal'),
+  modalTitle:  document.getElementById('modalTitle'),
+  fTitle:      document.getElementById('fTitle'),
+  fDesc:       document.getElementById('fDesc'),
+  fResolution: document.getElementById('fResolution'),
+  fReporter:   document.getElementById('fReporter'),
+  fOwner:      document.getElementById('fOwner'),
+  fStatus:     document.getElementById('fStatus'),
+  fPriority:   document.getElementById('fPriority'),
+  fChannel:    document.getElementById('fChannel'),
+  fTimeSpent:  document.getElementById('fTimeSpent'),
+  fDate:       document.getElementById('fDate'),
+
+  fmt(iso) {
+    return new Date(iso).toLocaleString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  },
+
+  esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  },
+
+  renderAll(issues) {
+    this.list.innerHTML = '';
+    if (!issues.length) { this.empty.classList.add('show'); return; }
+    this.empty.classList.remove('show');
+    issues.forEach(i => this.list.appendChild(this.card(i)));
+  },
+
+  card(i) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.id = i.id;
+    el.innerHTML = `
+      <div class="card-header">
+        <div class="card-title">${this.esc(i.title)}</div>
+        <span class="badge ${i.status}">${i.status}</span>
+      </div>
+      <div class="card-desc">${this.esc(i.desc)}</div>
+      <div class="card-info">
+        <span class="badge ${i.priority}">${i.priority}</span>
+        <span>👤 Reporter: ${this.esc(i.reporter)}</span>
+        <span>🏷 Owner: ${i.owner ? this.esc(i.owner) : '—'}</span>
+        <span>📨 Via: ${this.esc(i.channel)}</span>
+        <span>⏱ Time: ${i.time_spent ? i.time_spent + 'h' : '—'}</span>
+      </div>
+      ${i.image ? `<img src="${i.image}" class="card-image"/>` : ''}
+      ${i.resolution ? `
+      <div class="resolution-block">
+        <div class="label">✓ Resolution</div>
+        <p>${this.esc(i.resolution)}</p>
+      </div>` : ''}
+      <div class="card-meta">
+        <span class="card-date">${this.fmt(i.date)}</span>
+        <div class="card-actions">
+          <button class="edit">Edit</button>
+          <button class="toggle">${i.status === 'resolved' ? 'Reopen' : 'Resolve'}</button>
+          <button class="del">Delete</button>
+        </div>
+      </div>`;
+    return el;
+  },
+
+  openModal(title = 'New Issue', data = {}) {
+    this.modalTitle.textContent = title;
+    this.fTitle.value      = data.title      || '';
+    this.fDesc.value       = data.desc       || '';
+    this.fResolution.value = data.resolution || '';
+    this.fReporter.value   = data.reporter   || '';
+    this.fOwner.value      = data.owner      || '';
+    this.fStatus.value     = data.status     || 'open';
+    this.fPriority.value   = data.priority   || 'medium';
+    this.fChannel.value    = data.channel    || 'email';
+    this.fTimeSpent.value  = data.time_spent || '';
+    this.fDate.value       = data.date ? data.date.slice(0,16) : '';
+    issueImageUrl = data.image || '';
+    document.getElementById('issuePreview').innerHTML = data.image ? `<img src="${data.image}"/>` : '';
+    this.modal.classList.remove('hidden');
+    this.fTitle.focus();
+  },
+
+  closeModal() {
+    this.modal.classList.add('hidden');
+    issueImageUrl = '';
+    document.getElementById('issuePreview').innerHTML = '';
+  },
+
+  formData() {
+    return {
+      title:      this.fTitle.value.trim(),
+      desc:       this.fDesc.value.trim(),
+      resolution: this.fResolution.value.trim(),
+      reporter:   this.fReporter.value.trim(),
+      owner:      this.fOwner.value.trim(),
+      status:     this.fStatus.value || 'open',
+      priority:   this.fPriority.value || 'medium',
+      channel:    this.fChannel.value || 'email',
+      time_spent: parseFloat(this.fTimeSpent.value) || 0,
+      image:      issueImageUrl,
+      date:       this.fDate.value ? new Date(this.fDate.value).toISOString() : new Date().toISOString()
+    };
+  }
+};
+
+// ── EVENT VIEW ─────────────────────────────────────────
+const EventView = {
+  list:       document.getElementById('issueList'),
+  empty:      document.getElementById('empty'),
+  modal:      document.getElementById('eventModal'),
+  modalTitle: document.getElementById('eventModalTitle'),
+  eTitle:     document.getElementById('eTitle'),
+  eType:      document.getElementById('eType'),
+  eLocation:  document.getElementById('eLocation'),
+  eInvitees:  document.getElementById('eInvitees'),
+  eDate:      document.getElementById('eDate'),
+  eDuration:  document.getElementById('eDuration'),
+  ePriority:  document.getElementById('ePriority'),
+  eDesc:      document.getElementById('eDesc'),
+  eOutcome:   document.getElementById('eOutcome'),
+  eActions:   document.getElementById('eActions'),
+  eFollowup:  document.getElementById('eFollowup'),
+  eReporter:  document.getElementById('eReporter'),
+
+  fmt(iso) {
+    return new Date(iso).toLocaleString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  },
+
+  esc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  },
+
+  renderAll(events) {
+    this.list.innerHTML = '';
+    if (!events.length) { this.empty.classList.add('show'); return; }
+    this.empty.classList.remove('show');
+    events.forEach(e => this.list.appendChild(this.card(e)));
+  },
+
+  card(e) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.dataset.eid = e.id;
+    el.innerHTML = `
+      <div class="card-header">
+        <div class="card-title">${this.esc(e.title)}</div>
+        <span class="badge ${e.priority}">${this.esc(e.type)}</span>
+      </div>
+      <div class="card-desc">${this.esc(e.desc)}</div>
+      <div class="card-info">
+        <span>📍 ${this.esc(e.location)}</span>
+        <span>👥 ${this.esc(e.invitees) || '—'}</span>
+        <span>⏱ ${e.duration ? e.duration + 'h' : '—'}</span>
+        <span>👤 ${this.esc(e.reporter)}</span>
+      </div>
+      ${e.image ? `<img src="${e.image}" class="card-image"/>` : ''}
+      ${e.outcome ? `<div class="resolution-block"><div class="label">✓ Outcome</div><p>${this.esc(e.outcome)}</p></div>` : ''}
+      ${e.actions ? `<div class="resolution-block" style="border-color:var(--accent)"><div class="label" style="color:var(--accent)">⚡ Actions</div><p>${this.esc(e.actions)}</p></div>` : ''}
+      ${e.followup ? `<div style="margin-top:.5rem;font-size:11px;color:var(--muted);">📅 Follow-up: ${this.esc(e.followup)}</div>` : ''}
+      <div class="card-meta">
+        <span class="card-date">${this.fmt(e.date)}</span>
+        <div class="card-actions">
+          <button class="evtedit">Edit</button>
+          <button class="evtdel">Delete</button>
+        </div>
+      </div>`;
+    return el;
+  },
+
+  openModal(title = 'New Event', data = {}) {
+    this.modalTitle.textContent = title;
+    this.eTitle.value    = data.title    || '';
+    this.eType.value     = data.type     || 'meeting';
+    this.eLocation.value = data.location || 'teams';
+    this.eInvitees.value = data.invitees || '';
+    this.eDate.value     = data.date ? data.date.slice(0,16) : '';
+    this.eDuration.value = data.duration || '';
+    this.ePriority.value = data.priority || 'medium';
+    this.eDesc.value     = data.desc     || '';
+    this.eOutcome.value  = data.outcome  || '';
+    this.eActions.value  = data.actions  || '';
+    this.eFollowup.value = data.followup || '';
+    this.eReporter.value = data.reporter || '';
+    eventImageUrl = data.image || '';
+    document.getElementById('eventPreview').innerHTML = data.image ? `<img src="${data.image}"/>` : '';
+    this.modal.classList.remove('hidden');
+    this.eTitle.focus();
+  },
+
+  closeModal() {
+    this.modal.classList.add('hidden');
+    eventImageUrl = '';
+    document.getElementById('eventPreview').innerHTML = '';
+  },
+
+  formData() {
+    return {
+      title:    this.eTitle.value.trim(),
+      type:     this.eType.value,
+      location: this.eLocation.value,
+      invitees: this.eInvitees.value.trim(),
+      date:     this.eDate.value ? new Date(this.eDate.value).toISOString() : new Date().toISOString(),
+      duration: parseFloat(this.eDuration.value) || 0,
+      priority: this.ePriority.value,
+      desc:     this.eDesc.value.trim(),
+      outcome:  this.eOutcome.value.trim(),
+      actions:  this.eActions.value.trim(),
+      followup: this.eFollowup.value,
+      reporter: this.eReporter.value.trim(),
+      image:    eventImageUrl
+    };
+  }
+};
+
+// ── CONTROLLER ─────────────────────────────────────────
+const Controller = (() => {
+  let filter      = 'all';
+  let issueEditId = null;
+  let eventEditId = null;
+  let activeTab   = 'issues';
+
+  const filtered = () => {
+    const all = Model.getAll();
+    if (filter === 'all') return all;
+    if (filter === 'open') return all.filter(i => i.status === 'open' || i.status === 'in-progress');
+    return all.filter(i => i.status === filter);
+  };
+
+  const renderIssues = () => View.renderAll(filtered());
+  const renderEvents = () => EventView.renderAll(EventModel.getAll());
+
+  // TABS
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTab = btn.dataset.tab;
+      if (activeTab === 'events') {
+        document.getElementById('openModal').style.display      = 'none';
+        document.getElementById('openEventModal').style.display = 'inline-block';
+        document.getElementById('filters').style.display        = 'none';
+        EventModel.load().then(renderEvents);
+      } else {
+        document.getElementById('openModal').style.display      = 'inline-block';
+        document.getElementById('openEventModal').style.display = 'none';
+        document.getElementById('filters').style.display        = 'flex';
+        Model.load().then(renderIssues);
+      }
+    });
+  });
+
+  // FILTERS
+  document.querySelectorAll('.filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filter = btn.dataset.filter;
+      Model.load().then(renderIssues);
+    });
+  });
+
+  // ISSUE MODAL
+  document.getElementById('openModal').addEventListener('click', () => {
+    issueEditId = null;
+    View.openModal();
+  });
+  document.getElementById('cancelModal').addEventListener('click', View.closeModal.bind(View));
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) View.closeModal();
+  });
+
+  // SAVE ISSUE
+  document.getElementById('saveIssue').addEventListener('click', async () => {
+    const data = View.formData();
+    if (!data.title || !data.desc || !data.reporter) {
+      alert('Title, description and reporter are required.');
+      return;
+    }
+    if (issueEditId) {
+      await Model.update(issueEditId, data);
+      issueEditId = null;
+    } else {
+      await Model.add(data);
+    }
+    View.closeModal();
+    await Model.load();
+    renderIssues();
+  });
+
+  // EVENT MODAL
+  document.getElementById('openEventModal').style.display = 'none';
+  document.getElementById('openEventModal').addEventListener('click', () => {
+    eventEditId = null;
+    EventView.openModal();
+  });
+  document.getElementById('cancelEvent').addEventListener('click', EventView.closeModal.bind(EventView));
+  document.getElementById('eventModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('eventModal')) EventView.closeModal();
+  });
+
+  // SAVE EVENT
+  document.getElementById('saveEvent').addEventListener('click', async () => {
+    const data = EventView.formData();
+    if (!data.title || !data.desc || !data.reporter) {
+      alert('Subject, description and reporter are required.');
+      return;
+    }
+    if (eventEditId) {
+      await EventModel.update(eventEditId, data);
+      eventEditId = null;
+    } else {
+      await EventModel.add(data);
+    }
+    EventView.closeModal();
+    await EventModel.load();
+    renderEvents();
+  });
+
+  // CARD ACTIONS
+  document.getElementById('issueList').addEventListener('click', async e => {
+    const card = e.target.closest('.card');
+    if (!card) return;
+
+    if (card.dataset.eid) {
+      const id = Number(card.dataset.eid);
+      if (e.target.classList.contains('evtdel')) {
+        if (confirm('Delete this event?')) {
+          await EventModel.remove(id);
+          await EventModel.load();
+          renderEvents();
+        }
+      } else if (e.target.classList.contains('evtedit')) {
+        eventEditId = id;
+        EventView.openModal('Edit Event', EventModel.get(id));
+      }
+      return;
+    }
+
+    if (card.dataset.id) {
+      const id = Number(card.dataset.id);
+      if (e.target.classList.contains('del')) {
+        if (confirm('Delete this issue?')) {
+          await Model.remove(id);
+          await Model.load();
+          renderIssues();
+        }
+      } else if (e.target.classList.contains('edit')) {
+        issueEditId = id;
+        View.openModal('Edit Issue', Model.get(id));
+      } else if (e.target.classList.contains('toggle')) {
+        const issue = Model.get(id);
+        await Model.update(id, {
+          ...issue,
+          status: issue.status === 'resolved' ? 'open' : 'resolved'
+        });
+        await Model.load();
+        renderIssues();
+      }
+    }
+  });
+
+  // KEYBOARD
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { View.closeModal(); EventView.closeModal(); }
+  });
+
+  // INIT
+  Model.load().then(renderIssues);
+})();
+Reset DB and fix upload folder:
+sudo rm /var/www/empsdnotes/issues.db
+sudo touch /var/www/empsdnotes/issues.db
+sudo chown www-data:www-data /var/www/empsdnotes/issues.db
+sudo chmod 664 /var/www/empsdnotes/issues.db
+sudo mkdir -p /var/www/empsdnotes/uploads
+sudo chown www-data:www-data /var/www/empsdnotes/uploads
+sudo chmod 755 /var/www/empsdnotes/uploads
